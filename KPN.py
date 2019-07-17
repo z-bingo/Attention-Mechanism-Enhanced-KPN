@@ -143,9 +143,9 @@ class KernelConv(nn.Module):
         core_out = {}
         cur = 0
         for K in self.kernel_size:
-            t1 = core_1[:, :, cur:cur + K, ...].view(batch_size, N, K, 1, 3, height, width)
-            t2 = core_2[:, :, cur:cur + K, ...].view(batch_size, N, 1, K, 3, height, width)
-            core_out[K] = torch.einsum('ijklno,ijlmno->ijkmno', [t1, t2]).view(batch_size, N, K * K, color, height, width)
+            t1 = core_1[:, :, cur:cur + K, ...].view(batch_size, N, K, 1, color, height, width)
+            t2 = core_2[:, :, cur:cur + K, ...].view(batch_size, N, 1, K, color, height, width)
+            core_out[K] = torch.einsum('ijklnop,ijlmnop->ijkmnop', [t1, t2]).view(batch_size, N, K * K, color, height, width)
             cur += K
         # it is a dict
         return core_out, None if not self.core_bias else core_3.squeeze()
@@ -179,18 +179,20 @@ class KernelConv(nn.Module):
             core, bias = self._sep_conv_core(core, batch_size, N, color, height, width)
         else:
             core, bias = self._convert_dict(core, batch_size, N, color, height, width)
+        # for key, data in core.items():
+        #     print(key, data.size())
         img_stack = []
         pred_img = []
         kernel = self.kernel_size[::-1]
         for index, K in enumerate(kernel):
-            if not img_stack:
+            if len(img_stack) == 0:
                 frame_pad = F.pad(frames, [K // 2, K // 2, K // 2, K // 2])
                 for i in range(K):
                     for j in range(K):
                         img_stack.append(frame_pad[..., i:i + height, j:j + width])
                 img_stack = torch.stack(img_stack, dim=2)
             else:
-                k_diff = (kernel[index - 1] - kernel[index]) // 2
+                k_diff = (kernel[index - 1]**2 - kernel[index]**2) // 2
                 img_stack = img_stack[:, :, k_diff:-k_diff, ...]
             # print('img_stack:', img_stack.size())
             pred_img.append(torch.sum(
