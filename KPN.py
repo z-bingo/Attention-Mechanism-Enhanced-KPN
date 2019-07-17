@@ -198,17 +198,26 @@ class KernelConv(nn.Module):
             ))
         pred_img = torch.stack(pred_img, dim=0)
         # print('pred_stack:', pred_img.size())
-        pred_img_i = torch.mean(pred_img, dim=0, keepdim=False).squeeze()
+        pred_img_i = torch.mean(pred_img, dim=0, keepdim=False)
         # if bias is permitted
         if self.core_bias:
             if bias is None:
                 raise ValueError('The bias should not be None.')
             pred_img_i += bias
-        # print('white_level', white_level.size())
+
+        if color == 1:
+            pred_img_i = pred_img_i.squeeze(2)
+
+        try:
+            while len(pred_img_i.size()) > len(white_level.size()):
+                white_level = white_level.unsqueeze(-1)
+            white_level = white_level.type_as(pred_img_i).expand_as(pred_img_i)
+        except:
+            pass
+
         pred_img_i = pred_img_i / white_level
         pred_img = torch.mean(pred_img_i, dim=1, keepdim=False)
         # print('pred_img:', pred_img.size())
-        # print('pred_img_i:', pred_img_i.size())
         return pred_img_i, pred_img
 
 
