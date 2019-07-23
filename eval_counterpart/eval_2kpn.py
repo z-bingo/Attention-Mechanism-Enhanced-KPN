@@ -14,7 +14,7 @@ from eval_counterpart.eval_data_loader import TrainDataSet
 
 from Att_KPN import Att_KPN
 from KPN import KPN
-from Att_Res_KPN import Att_Res_KPN
+# from mkpn import mkpn
 from Att_Weight_KPN import Att_Weight_KPN
 
 from kpn_data_provider import sRGBGamma
@@ -66,14 +66,14 @@ if __name__ == '__main__':
         core_bias=False
     )
 
-    att_res_kpn = Att_Res_KPN(
+    mkpn = KPN(
         color=False,
         burst_length=8,
         blind_est=False,
-        kernel_size=[5],
-        sep_conv=False,
-        channel_att=True,
-        spatial_att=True,
+        kernel_size=[1,3,5,7,9],
+        sep_conv=True,
+        channel_att=False,
+        spatial_att=False,
         upMode='bilinear',
         core_bias=False
     )
@@ -92,18 +92,18 @@ if __name__ == '__main__':
 
     att_kpn = nn.DataParallel(att_kpn.cuda())
     kpn = nn.DataParallel(kpn.cuda())
-    att_res_kpn = nn.DataParallel(att_res_kpn.cuda())
+    mkpn = nn.DataParallel(mkpn.cuda())
     att_weight_kpn = nn.DataParallel(att_weight_kpn.cuda())
 
     # load
     # att_kpn_ckpt = load_checkpoint('../models/att_kpn/checkpoint', best_or_latest='best')
-    kpn_ckpt = load_checkpoint('../models/kpn_syn/checkpoint', best_or_latest='best')
-    att_res_kpn_ckpt = load_checkpoint('../models/att_res_kpn/checkpoint', best_or_latest='best')
+    kpn_ckpt = load_checkpoint('../models/kpn_aug/checkpoint', best_or_latest='best')
+    mkpn_ckpt = load_checkpoint('../models/mkpn/checkpoint', best_or_latest='best')
     att_weight_kpn_ckpt = load_checkpoint('../models/att_weight_kpn/checkpoint', best_or_latest='best')
 
     # att_kpn.load_state_dict(att_kpn_ckpt['state_dict'])
     kpn.load_state_dict(kpn_ckpt['state_dict'])
-    att_res_kpn.load_state_dict(att_res_kpn_ckpt['state_dict'])
+    mkpn.load_state_dict(mkpn_ckpt['state_dict'])
     att_weight_kpn.load_state_dict(att_weight_kpn_ckpt['state_dict'])
     print('The models are load OK!')
 
@@ -116,12 +116,12 @@ if __name__ == '__main__':
 
     trans = transforms.ToPILImage()
 
-    psnr_kpn, psnr_att_kpn, psnr_att_res_kpn, psnr_att_weight_kpn = [], [], [], []
-    ssim_kpn, ssim_att_kpn, ssim_att_res_kpn, ssim_att_weight_kpn = [], [], [], []
+    psnr_kpn, psnr_att_kpn, psnr_mkpn, psnr_att_weight_kpn = [], [], [], []
+    ssim_kpn, ssim_att_kpn, ssim_mkpn, ssim_att_weight_kpn = [], [], [], []
 
     with torch.no_grad():
         for i, (burst_noise, gt, white_level) in enumerate(data_loader):
-            if i > 100:
+            if i > 10:
                 break
 
             burst_noise = burst_noise.cuda()
@@ -131,14 +131,17 @@ if __name__ == '__main__':
             # _, att_pred = att_kpn(burst_noise, burst_noise[:, 0:8, ...], white_level)
             # kpn
             _, pred = kpn(burst_noise, burst_noise[:, 0:8, ...], white_level)
+            pred = pred.clamp(0.0, 1.0)
             # att_res
-            _, att_res_pred = att_res_kpn(burst_noise, burst_noise[:, :8, ...], white_level)
+            _, mkpn_pred = mkpn(burst_noise, burst_noise[:, :8, ...], white_level)
+            mkpn_pred = mkpn_pred.clamp(0.0, 1.0)
             #
             _, att_weight_pred = att_weight_kpn(burst_noise, burst_noise[:, :8, ...], white_level)
+            att_weight_pred = att_weight_pred.clamp(0.0, 1.0)
 
             # sRGB Gamma
             # att_pred = sRGBGamma(att_pred)
-            att_res_pred = sRGBGamma(att_res_pred)
+            mkpn_pred = sRGBGamma(mkpn_pred)
             att_weight_pred = sRGBGamma(att_weight_pred)
             pred = sRGBGamma(pred)
             gt = sRGBGamma(gt)
@@ -146,11 +149,11 @@ if __name__ == '__main__':
 
             # clamp
             # att_pred = torch.clamp(att_pred, 0.0, 1.0)
-            pred = torch.clamp(pred, 0.0, 1.0)
+            # pred = torch.clamp(pred, 0.0, 1.0)
 
             pred = pred.cpu()
             # att_pred = att_pred.cpu()
-            att_res_pred = att_res_pred.cpu()
+            mkpn_pred = mkpn_pred.cpu()
             att_weight_pred = att_weight_pred.cpu()
             gt = gt.cpu()
             burst_noise = burst_noise.cpu()
@@ -171,11 +174,11 @@ if __name__ == '__main__':
             ssim_kpn.append(ssim)
 
             # att res kpn
-            psnr = calculate_psnr(att_res_pred.unsqueeze(1), gt.unsqueeze(1))
-            ssim = calculate_ssim(att_res_pred.unsqueeze(1), gt.unsqueeze(1))
-            trans(att_res_pred).save('./eval_images/{}_attResKPN_{:.2f}dB_{:.4f}.png'.format(i, psnr, ssim), quality=100)
-            psnr_att_res_kpn.append(psnr)
-            ssim_att_res_kpn.append(ssim)
+            psnr = calculate_psnr(mkpn_pred.unsqueeze(1), gt.unsqueeze(1))
+            ssim = calculate_ssim(mkpn_pred.unsqueeze(1), gt.unsqueeze(1))
+            trans(mkpn_pred).save('./eval_images/{}_MKPN_{:.2f}dB_{:.4f}.png'.format(i, psnr, ssim), quality=100)
+            psnr_mkpn.append(psnr)
+            ssim_mkpn.append(ssim)
 
             # att weight kpn
             psnr = calculate_psnr(att_weight_pred.unsqueeze(1), gt.unsqueeze(1))
@@ -188,13 +191,13 @@ if __name__ == '__main__':
 
             psnr = calculate_psnr(burst_noise[:, 0, ...].unsqueeze(1), gt.unsqueeze(1))
             ssim = calculate_ssim(burst_noise[:, 0, ...].unsqueeze(1), gt.unsqueeze(1))
-            for index in range(9):
-                if index < 8:
-                    trans(burst_noise[0, index, ...]).save('./eval_images/{}_noisy_{:.2f}dB_{:.4f}_{}.png'.
-                                                           format(i, psnr, ssim, index), quality=100)
-                else:
-                    trans(burst_noise[0, index, ...]).convert('P').save('./eval_images/{}_noisy_{:.2f}dB_{:.4f}_{}.png'.
-                                                           format(i, psnr, ssim, index), quality=100)
+            # for index in range(9):
+            #     if index < 8:
+            #         trans(burst_noise[0, index, ...]).save('./eval_images/{}_noisy_{:.2f}dB_{:.4f}_{}.png'.
+            #                                                format(i, psnr, ssim, index), quality=100)
+            #     else:
+            #         trans(burst_noise[0, index, ...]).convert('P').save('./eval_images/{}_noisy_{:.2f}dB_{:.4f}_{}.png'.
+            #                                                format(i, psnr, ssim, index), quality=100)
 
             trans(gt).save('./eval_images/{}_gt.png'.format(i), quality=100)
 
@@ -203,7 +206,7 @@ if __name__ == '__main__':
         print('KPN average SSIM {:.4f}'.format(sum(ssim_kpn)/len(ssim_kpn)))
         # print('Attentional KPN average PSNR {:.2f}dB'.format(sum(psnr_att_kpn)/len(psnr_att_kpn)))
         # print('Attentional KPN average SSIM {:.4f}'.format(sum(ssim_att_kpn)/len(ssim_att_kpn)))
-        print('Attentional Residual KPN average PSNR {:.2f}dB'.format(sum(psnr_att_res_kpn) / len(psnr_att_res_kpn)))
-        print('Attentional Residual KPN average SSIM {:.4f}'.format(sum(ssim_att_res_kpn) / len(ssim_att_res_kpn)))
+        print('Multi KPN average PSNR {:.2f}dB'.format(sum(psnr_mkpn) / len(psnr_mkpn)))
+        print('Multi KPN average SSIM {:.4f}'.format(sum(ssim_mkpn) / len(ssim_mkpn)))
         print('Attentional Weighted KPN average PSNR {:.2f}dB'.format(sum(psnr_att_weight_kpn) / len(psnr_att_weight_kpn)))
         print('Attentional Weighted KPN average SSIM {:.4f}'.format(sum(ssim_att_weight_kpn) / len(ssim_att_weight_kpn)))

@@ -18,6 +18,7 @@ from utils.training_util import calculate_psnr, calculate_ssim
 from tensorboardX import SummaryWriter
 from PIL import Image
 from torchvision.transforms import transforms
+# import setproctitle
 
 def train(config, num_workers, num_threads, cuda, restart_train, mGPU):
     # torch.set_num_threads(num_threads)
@@ -113,7 +114,7 @@ def train(config, num_workers, num_threads, cuda, restart_train, mGPU):
     average_loss = MovingAverage(train_config['save_freq'])
     if not restart_train:
         try:
-            checkpoint = load_checkpoint(checkpoint_dir, 'best')
+            checkpoint = load_checkpoint(checkpoint_dir, 'latest')
             start_epoch = checkpoint['epoch']
             global_step = checkpoint['global_iter']
             best_loss = checkpoint['best_loss']

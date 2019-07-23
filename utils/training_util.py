@@ -122,6 +122,8 @@ def torch2numpy(tensor, gamma=None):
     if gamma is not None:
         tensor = torch.pow(tensor, gamma)
     tensor *= 255.0
+    while len(tensor.size()) < 4:
+        tensor = tensor.unsqueeze(1)
     return tensor.permute(0, 2, 3, 1).cpu().data.numpy()
 
 
