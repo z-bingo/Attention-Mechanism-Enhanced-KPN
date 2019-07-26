@@ -35,14 +35,15 @@ Gains = (
 #     }
 
 val_dict = {
-        'kpn_5x5',
+        # 'kpn_5x5',
         'kpn_7x7',
-        'mkpn',
-        'weight_kpn'
+        # 'spatial_att',
+        # 'weight_kpn',
+        # 'gkpn'
     }
 
 def prediction(model, gt, noisy, white_level):
-    _, pred = model(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+    _, pred = model(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
     pred = pred.clamp(0.0, 1.0)
     pred = sRGBGamma(pred)
     pred = pred.cpu()
@@ -101,13 +102,13 @@ if 'kpn_7x7' in val_dict:
         color=color,
         burst_length=8,
         blind_est=False,
-        kernel_size=[7],
-        sep_conv=False,
+        kernel_size=[21],
+        sep_conv=True,
         channel_att=False,
         spatial_att=False
     ).cuda()
     kpn_7x7 = nn.DataParallel(kpn_7x7)
-    state = load_checkpoint('../models/kpn_aug_7x7/checkpoint', best_or_latest='best')
+    state = load_checkpoint('../models/kpn_aug_15x15/checkpoint', best_or_latest='best')
     kpn_7x7.load_state_dict(state['state_dict'])
     print('KPN with 7x7-sized model is loaded from iteration {}!'.format(state['global_iter']))
     psnr_kpn_7x7, ssim_kpn_7x7 = [],[]
@@ -223,7 +224,7 @@ if __name__ == '__main__':
     with torch.no_grad():
         index = 0
         cnt = 0
-        data_loader= iter(data_loader)
+        data_loader = iter(data_loader)
         while index < 100 and cnt < 110:
             cnt += 1
             try:
@@ -238,7 +239,7 @@ if __name__ == '__main__':
                 gt = sRGBGamma(gt)
 
                 if 'kpn_5x5' in val_dict:
-                    _, kpn_5x5_pred = kpn_5x5(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, kpn_5x5_pred = kpn_5x5(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     kpn_5x5_pred = kpn_5x5_pred.clamp(0.0, 1.0)
                     kpn_5x5_pred = sRGBGamma(kpn_5x5_pred)
                     kpn_5x5_pred = kpn_5x5_pred.cpu()
@@ -250,7 +251,7 @@ if __name__ == '__main__':
                     del kpn_5x5_pred
 
                 if 'kpn_7x7' in val_dict:
-                    _, kpn_7x7_pred = kpn_7x7(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, kpn_7x7_pred = kpn_7x7(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     kpn_7x7_pred = kpn_7x7_pred.clamp(0.0, 1.0)
                     kpn_7x7_pred = sRGBGamma(kpn_7x7_pred)
                     kpn_7x7_pred = kpn_7x7_pred.cpu()
@@ -262,7 +263,7 @@ if __name__ == '__main__':
                     del kpn_7x7_pred
 
                 if 'mkpn' in val_dict:
-                    _, mkpn_pred = mkpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, mkpn_pred = mkpn(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     mkpn_pred = mkpn_pred.clamp(0.0, 1.0)
                     mkpn_pred = sRGBGamma(mkpn_pred)
                     mkpn_pred = mkpn_pred.cpu()
@@ -274,7 +275,7 @@ if __name__ == '__main__':
                     del mkpn_pred
 
                 if 'gkpn' in val_dict:
-                    _, gkpn_pred = gkpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, gkpn_pred = gkpn(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     gkpn_pred = gkpn_pred.clamp(0.0, 1.0)
                     gkpn_pred = sRGBGamma(gkpn_pred)
                     gkpn_pred = gkpn_pred.cpu()
@@ -286,7 +287,7 @@ if __name__ == '__main__':
                     del gkpn_pred
 
                 if 'channel_att' in val_dict:
-                    _, ckpn_pred = channel_att(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, ckpn_pred = channel_att(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     ckpn_pred = ckpn_pred.clamp(0.0, 1.0)
                     ckpn_pred = sRGBGamma(ckpn_pred)
                     ckpn_pred = ckpn_pred.cpu()
@@ -297,7 +298,7 @@ if __name__ == '__main__':
                     del ckpn_pred
 
                 if 'spatial_att' in val_dict:
-                    _, skpn_pred = spatial_att(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, skpn_pred = spatial_att(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     skpn_pred = skpn_pred.clamp(0.0, 1.0)
                     skpn_pred = sRGBGamma(skpn_pred)
                     skpn_pred = skpn_pred.cpu()
@@ -308,7 +309,7 @@ if __name__ == '__main__':
                     del skpn_pred
 
                 if 'att_kpn' in val_dict:
-                    _, akpn_pred = att_kpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, akpn_pred = att_kpn(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     akpn_pred = akpn_pred.clamp(0.0, 1.0)
                     akpn_pred = sRGBGamma(akpn_pred)
                     akpn_pred = akpn_pred.cpu()
@@ -319,7 +320,7 @@ if __name__ == '__main__':
                     del akpn_pred
 
                 if 'weight_kpn' in val_dict:
-                    _, wkpn_pred = wkpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+                    _, wkpn_pred = wkpn(noisy.view(1, -1, 256, 256), noisy[:, :8, ...], white_level)
                     wkpn_pred = wkpn_pred.clamp(0.0, 1.0)
                     wkpn_pred = sRGBGamma(wkpn_pred)
                     wkpn_pred = wkpn_pred.cpu()
@@ -342,9 +343,9 @@ if __name__ == '__main__':
                 trans_rgb(gt[0, ...]).save('./eval_images/{}_gt.png'.format(index))
 
                 print('Image {} is OK!'.format(index))
-            except:
+            except Exception as e:
                 # print('Errors occur')
-                pass
+                print(e)
 
         print('Validation Over!')
 

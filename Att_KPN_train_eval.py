@@ -315,7 +315,7 @@ def eval(config, args):
                 if not args.color:
                     pred = pred.unsqueeze(1)
                     gt = gt.unsqueeze(1)
-                    psnr_noisy = calculate_psnr(burst_noise[:, 0, ...].unsqueeze(1), gt.unsqueeze(1))
+                    psnr_noisy = calculate_psnr(burst_noise[:, 0, ...].unsqueeze(1), gt)
                 else:
                     psnr_noisy = calculate_psnr(burst_noise[:, 0, ...], gt)
                 psnr_t = calculate_psnr(pred, gt)

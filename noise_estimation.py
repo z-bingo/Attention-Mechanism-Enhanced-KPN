@@ -46,73 +46,74 @@ class LossFn(nn.Module):
         Lasymm = torch.sum(torch.abs(self.alpha - mask) * ((pred - gt)**2))
         return Lasymm + self.lambda_l*self.gradient(pred)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--restart', '-r', action='store_true')
-args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--restart', '-r', action='store_true')
+    args = parser.parse_args()
 
-config = read_config('kpn_specs/att_kpn_config.conf', 'kpn_specs/configspec.conf')
-train_config = config['training']
-data_set = TrainDataSet(
-    train_config['dataset_configs'],
-    img_format='.bmp',
-    degamma=True,
-    color=True,
-    blind=False
-)
-data_loader = DataLoader(
-    dataset=data_set,
-    batch_size=32,
-    shuffle=True,
-    num_workers=16
-)
+    config = read_config('kpn_specs/att_kpn_config.conf', 'kpn_specs/configspec.conf')
+    train_config = config['training']
+    data_set = TrainDataSet(
+        train_config['dataset_configs'],
+        img_format='.bmp',
+        degamma=True,
+        color=True,
+        blind=False
+    )
+    data_loader = DataLoader(
+        dataset=data_set,
+        batch_size=32,
+        shuffle=True,
+        num_workers=16
+    )
 
-loss_fn = LossFn()
+    loss_fn = LossFn()
 
-model = Network(True).cuda()
-model = nn.DataParallel(model)
+    model = Network(True).cuda()
+    model = nn.DataParallel(model)
 
-model.train()
+    model.train()
 
-optimizer = optim.Adam(model.parameters(), lr=5e-5)
+    optimizer = optim.Adam(model.parameters(), lr=5e-5)
 
-if not args.restart:
-    state = load_checkpoint('./noise_models', best_or_latest='best')
-    global_iter = state['global_iter']
-    model.load_state_dict(state['model'])
-    print('model load OK at iter {}'.format(global_iter))
-else:
-    global_iter = 0
-min_loss = np.inf
-loss_ave = MovingAverage(200)
+    if not args.restart:
+        state = load_checkpoint('./noise_models', best_or_latest='best')
+        global_iter = state['global_iter']
+        model.load_state_dict(state['model'])
+        print('model load OK at iter {}'.format(global_iter))
+    else:
+        global_iter = 0
+    min_loss = np.inf
+    loss_ave = MovingAverage(200)
 
-import os
-if not os.path.exists('./noise_models'):
-    os.mkdir('./noise_models')
+    import os
+    if not os.path.exists('./noise_models'):
+        os.mkdir('./noise_models')
 
-for epoch in range(500):
-    for step, (data, A, B) in enumerate(data_loader):
-        feed = data[:, 0, ...].cuda()
-        gt = data[:, -1, ...].cuda()
-        # print(data.size())
-        pred = model(feed)
+    for epoch in range(500):
+        for step, (data, A, B) in enumerate(data_loader):
+            feed = data[:, 0, ...].cuda()
+            gt = data[:, -1, ...].cuda()
+            # print(data.size())
+            pred = model(feed)
 
-        loss = loss_fn(pred, gt)
+            loss = loss_fn(pred, gt)
 
-        global_iter += 1
+            global_iter += 1
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        loss_ave.update(loss)
-        if global_iter % 200 == 0:
-            loss_t = loss_ave.get_value()
-            min_loss = min(min_loss, loss_t)
-            is_best = min_loss == loss_t
-            save_checkpoint(
-                {'model': model.state_dict(), 'global_iter': global_iter},
-                is_best=is_best,
-                checkpoint_dir='./noise_models',
-                n_iter=global_iter
-            )
-        print('{: 6d}, epoch {: 3d}, iter {: 4d}, loss {:.4f}'.format(global_iter, epoch, step, loss))
+            loss_ave.update(loss)
+            if global_iter % 200 == 0:
+                loss_t = loss_ave.get_value()
+                min_loss = min(min_loss, loss_t)
+                is_best = min_loss == loss_t
+                save_checkpoint(
+                    {'model': model.state_dict(), 'global_iter': global_iter},
+                    is_best=is_best,
+                    checkpoint_dir='./noise_models',
+                    n_iter=global_iter
+                )
+            print('{: 6d}, epoch {: 3d}, iter {: 4d}, loss {:.4f}'.format(global_iter, epoch, step, loss))

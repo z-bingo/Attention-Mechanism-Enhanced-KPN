@@ -32,7 +32,7 @@ class Basic(nn.Module):
             )
         if spatial_att:
             self.att_s = nn.Sequential(
-                nn.Conv2d(in_channels=2, out_channels=out_ch, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(in_channels=2, out_channels=1, kernel_size=7, stride=1, padding=3),
                 nn.Sigmoid()
             )
 

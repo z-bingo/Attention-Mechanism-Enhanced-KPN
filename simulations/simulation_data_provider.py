@@ -19,9 +19,9 @@ class Sim_Dataset(torch.utils.data.Dataset):
         self.dataset_dir = dataset_dir
         self.images = list(filter(lambda x: True if img_format in x else False, os.listdir(self.dataset_dir)))
         self.burst_size = 8
-        self.patch_size = 512
+        self.patch_size = 256
 
-        self.upscale = 2
+        self.upscale = 4
         self.big_jitter = 16
         self.small_jitter = 2
         # 对应下采样之前图像的最大偏移量
@@ -59,7 +59,7 @@ class Sim_Dataset(torch.utils.data.Dataset):
         # print(index)
         if not self.sim_file:
             image = Image.open(os.path.join(self.dataset_dir, self.images[index])).convert('RGB')
-        else:
+        else: 
             image = Image.open(os.path.join(self.dataset_dir, self.sim_file[index])).convert('RGB')
 
         # 先转换为Tensor进行degamma
