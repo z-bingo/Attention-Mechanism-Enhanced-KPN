@@ -144,7 +144,9 @@ class KernelConv(nn.Module):
         for K in self.kernel_size:
             t1 = core_1[:, :, cur:cur + K, ...].view(batch_size, N, K, 1, color, height, width)
             t2 = core_2[:, :, cur:cur + K, ...].view(batch_size, N, 1, K, color, height, width)
+
             core_out[K] = torch.einsum('ijklnop,ijlmnop->ijkmnop', [t1, t2]).view(batch_size, N, K * K, 1, height, width)
+
             cur += K
         # it is a dict
         return core_out, None if not self.core_bias else core_3.squeeze()

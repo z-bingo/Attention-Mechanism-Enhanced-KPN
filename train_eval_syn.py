@@ -159,6 +159,7 @@ def train(config, num_workers, num_threads, cuda, restart_train, mGPU):
             if cuda:
                 burst_noise = burst_noise.cuda()
                 gt = gt.cuda()
+
             if args.color:
                 b, N, c, h, w = burst_noise.size()
                 feedData = burst_noise.view(b, -1, h, w)
@@ -168,6 +169,7 @@ def train(config, num_workers, num_threads, cuda, restart_train, mGPU):
 
             #
             pred_i, pred = model(feedData, burst_noise[:, 0:burst_length, ...], white_level)
+
 
             #
             loss_basic, loss_anneal = loss_func(sRGBGamma(pred_i), sRGBGamma(pred), sRGBGamma(gt), global_step)
@@ -179,6 +181,7 @@ def train(config, num_workers, num_threads, cuda, restart_train, mGPU):
             # update the average loss
             average_loss.update(loss)
             # calculate PSNR
+
             if not args.color:
                 pred = pred.unsqueeze(1)
                 gt = gt.unsqueeze(1)
@@ -316,6 +319,7 @@ def eval(config, args):
                     psnr_t = calculate_psnr(pred, gt)
                     ssim_t = calculate_ssim(pred, gt)
                     psnr_noisy = calculate_psnr(burst_noise[:, 0, ...], gt)
+
                 psnr += psnr_t
                 ssim += ssim_t
 
@@ -350,6 +354,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint', '-ckpt', dest='checkpoint', type=str, default='best',
                         help='the checkpoint to eval')
     parser.add_argument('--color', action='store_true')
+
     args = parser.parse_args()
     #
     config = read_config(args.config_file, args.config_spec)

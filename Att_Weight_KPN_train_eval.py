@@ -163,6 +163,7 @@ def train(config, num_workers, num_threads, cuda, restart_train, mGPU):
             if cuda:
                 burst_noise = burst_noise.cuda()
                 gt = gt.cuda()
+
             if args.color:
                 b, N, c, h, w = burst_noise.size()
                 feedData = burst_noise.view(b, -1, h, w)

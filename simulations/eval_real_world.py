@@ -92,6 +92,7 @@ def validation(args):
                 for index in file_index:
                     img = Image.open(os.path.join(args.img, files[index])).convert('L')
                     img = trans(img)
+
                     img += (0.008+0.002*img) * torch.randn_like(img)
                     imgs.append(img.clamp(0.0, 1.0))
             else:

@@ -92,8 +92,10 @@ class Att_Weight_KPN(nn.Module):
         # only for gray images now, supporting for RGB could be programed later
         # print('weight', weight.size())
         # print('pred_i', pred_i.size())
+
         weight = weight.view(pred_i.size())
         residual = residual.view(pred_i.size())
+
         pred_i = weight*pred_i + (1-weight)*residual
 
         pred = torch.mean(pred_i, dim=1, keepdim=False)

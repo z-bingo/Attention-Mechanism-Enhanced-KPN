@@ -43,7 +43,9 @@ val_dict = {
     }
 
 def prediction(model, gt, noisy, white_level):
+
     _, pred = model(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
     pred = pred.clamp(0.0, 1.0)
     pred = sRGBGamma(pred)
     pred = pred.cpu()
@@ -239,7 +241,9 @@ if __name__ == '__main__':
                 gt = sRGBGamma(gt)
 
                 if 'kpn_5x5' in val_dict:
+
                     _, kpn_5x5_pred = kpn_5x5(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     kpn_5x5_pred = kpn_5x5_pred.clamp(0.0, 1.0)
                     kpn_5x5_pred = sRGBGamma(kpn_5x5_pred)
                     kpn_5x5_pred = kpn_5x5_pred.cpu()
@@ -251,7 +255,9 @@ if __name__ == '__main__':
                     del kpn_5x5_pred
 
                 if 'kpn_7x7' in val_dict:
+
                     _, kpn_7x7_pred = kpn_7x7(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     kpn_7x7_pred = kpn_7x7_pred.clamp(0.0, 1.0)
                     kpn_7x7_pred = sRGBGamma(kpn_7x7_pred)
                     kpn_7x7_pred = kpn_7x7_pred.cpu()
@@ -263,7 +269,9 @@ if __name__ == '__main__':
                     del kpn_7x7_pred
 
                 if 'mkpn' in val_dict:
+
                     _, mkpn_pred = mkpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     mkpn_pred = mkpn_pred.clamp(0.0, 1.0)
                     mkpn_pred = sRGBGamma(mkpn_pred)
                     mkpn_pred = mkpn_pred.cpu()
@@ -275,7 +283,9 @@ if __name__ == '__main__':
                     del mkpn_pred
 
                 if 'gkpn' in val_dict:
+
                     _, gkpn_pred = gkpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     gkpn_pred = gkpn_pred.clamp(0.0, 1.0)
                     gkpn_pred = sRGBGamma(gkpn_pred)
                     gkpn_pred = gkpn_pred.cpu()
@@ -287,7 +297,9 @@ if __name__ == '__main__':
                     del gkpn_pred
 
                 if 'channel_att' in val_dict:
+
                     _, ckpn_pred = channel_att(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     ckpn_pred = ckpn_pred.clamp(0.0, 1.0)
                     ckpn_pred = sRGBGamma(ckpn_pred)
                     ckpn_pred = ckpn_pred.cpu()
@@ -298,7 +310,9 @@ if __name__ == '__main__':
                     del ckpn_pred
 
                 if 'spatial_att' in val_dict:
+
                     _, skpn_pred = spatial_att(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     skpn_pred = skpn_pred.clamp(0.0, 1.0)
                     skpn_pred = sRGBGamma(skpn_pred)
                     skpn_pred = skpn_pred.cpu()
@@ -310,6 +324,7 @@ if __name__ == '__main__':
 
                 if 'att_kpn' in val_dict:
                     _, akpn_pred = att_kpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     akpn_pred = akpn_pred.clamp(0.0, 1.0)
                     akpn_pred = sRGBGamma(akpn_pred)
                     akpn_pred = akpn_pred.cpu()
@@ -321,6 +336,7 @@ if __name__ == '__main__':
 
                 if 'weight_kpn' in val_dict:
                     _, wkpn_pred = wkpn(noisy.view(1, -1, 512, 512), noisy[:, :8, ...], white_level)
+
                     wkpn_pred = wkpn_pred.clamp(0.0, 1.0)
                     wkpn_pred = sRGBGamma(wkpn_pred)
                     wkpn_pred = wkpn_pred.cpu()
