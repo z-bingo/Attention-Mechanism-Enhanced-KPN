@@ -3,6 +3,9 @@ Reimplement of [Burst Denoising with Kernel Prediction Networks](https://arxiv.o
 
 The partial work is following [https://github.com/12dmodel/camera_sim](https://github.com/12dmodel/camera_sim).
 
+## News
+The current version supports training on color images.
+
 ## TODO
 Write the documents.
 
