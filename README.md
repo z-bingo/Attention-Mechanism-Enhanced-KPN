@@ -1,6 +1,5 @@
 ## Kernel Prediction  Networks and Multi-Kernel Prediction Networks
 
-
 The partial work is following [https://github.com/12dmodel/camera_sim](https://github.com/12dmodel/camera_sim).
 
 ## News
