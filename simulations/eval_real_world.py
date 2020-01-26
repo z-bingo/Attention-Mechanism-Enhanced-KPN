@@ -13,12 +13,13 @@ from utils.training_util import load_checkpoint
 import os, sys
 from PIL import Image
 from utils.image_utils import center_crop_tensor
+import visdom
 
 def args_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--img', default='./real_world/Canon80D_print', help='A image or a directory')
-    parser.add_argument('--read', default=0.008, type=float)
-    parser.add_argument('--shot', default=0.004, type=float)
+    parser.add_argument('--img', default='./real_world/Nikon800_plant', help='A image or a directory')
+    parser.add_argument('--read', default=0.2, type=float)
+    parser.add_argument('--shot', default=0.1, type=float)
     return parser.parse_args()
 
 def padding(tensor, h, w):
@@ -88,16 +89,17 @@ def validation(args):
         if os.path.exists(args.img):
             if os.path.isdir(args.img):
                 files = os.listdir(args.img)
-                file_index = np.random.permutation(len(files))[:8]
+                # file_index = np.random.permutation(len(files))[:8]
+                file_index = range(8)
                 for index in file_index:
-                    img = Image.open(os.path.join(args.img, files[index])).convert('L')
+                    img = Image.open(os.path.join(args.img, files[index]))
                     img = trans(img)
 
-                    img += (0.008+0.002*img) * torch.randn_like(img)
+                    img += (0.02+0.01*img) * torch.randn_like(img)
                     imgs.append(img.clamp(0.0, 1.0))
             else:
                 raise ValueError('should be a burst of frames, not a image!')
-            s_read, s_shot = torch.Tensor([[args.read]]), torch.Tensor([[args.shot]])
+            s_read, s_shot = torch.Tensor([[[args.read]]]), torch.Tensor([[[args.shot]]])
             noise_est = torch.sqrt(s_read**2 + s_shot*torch.max(torch.zeros_like(imgs[0]), imgs[0]))
             imgs.append(noise_est)
             imgs = torch.stack(imgs, dim=0).unsqueeze(0).cuda()
@@ -115,6 +117,9 @@ def validation(args):
         res_gkpn = torch.zeros(c, h, w).cuda()
         res_kpn = torch.zeros(c, h, w).cuda()
 
+        res_gkpn_pred_i = torch.zeros(8, c, h, w).cuda()
+        res_gkpn_residual = torch.zeros(8, c, h, w).cuda()
+
         patch_size = 512
         receptiveFiled = 120
         imgs_pad = torch.zeros(b, N, c, h + 2 * receptiveFiled, w + 2 * receptiveFiled)
@@ -127,48 +132,54 @@ def validation(args):
         filename = os.path.splitext(filename)[0]
         trans = transforms.ToPILImage()
 
-        for i in range(0, h, patch_size):
-            for j in range(0, w, patch_size):
-                if i + patch_size <= h and j + patch_size <= w:
-                    # feed = imgs[..., i:i+patch_size, j:j+patch_size].contiguous()
-                    feed = imgs_pad[..., i:i + patch_size + 2 * receptiveFiled,
-                           j:j + patch_size + 2 * receptiveFiled].contiguous()
-                elif i + patch_size <= h:
-                    # feed = imgs[..., i:i + patch_size, j:].contiguous()
-                    feed = imgs_pad[..., i:i + patch_size + 2 * receptiveFiled, j:].contiguous()
-                elif j + patch_size <= w:
-                    # feed = imgs[..., i:, j:j+patch_size].contiguous()
-                    feed = imgs_pad[..., i:, j:j + patch_size + 2 * receptiveFiled].contiguous()
-                else:
-                    # feed = imgs[..., i:, j:].contiguous()
-                    feed = imgs_pad[..., i:, j:].contiguous()
+        for channel in range(c):
+            for i in range(0, h, patch_size):
+                for j in range(0, w, patch_size):
+                    if i + patch_size <= h and j + patch_size <= w:
+                        # feed = imgs[..., i:i+patch_size, j:j+patch_size].contiguous()
+                        feed = imgs_pad[..., channel, i:i + patch_size + 2 * receptiveFiled,
+                               j:j + patch_size + 2 * receptiveFiled].contiguous()
+                    elif i + patch_size <= h:
+                        # feed = imgs[..., i:i + patch_size, j:].contiguous()
+                        feed = imgs_pad[..., channel, i:i + patch_size + 2 * receptiveFiled, j:].contiguous()
+                    elif j + patch_size <= w:
+                        # feed = imgs[..., i:, j:j+patch_size].contiguous()
+                        feed = imgs_pad[..., channel, i:, j:j + patch_size + 2 * receptiveFiled].contiguous()
+                    else:
+                        # feed = imgs[..., i:, j:].contiguous()
+                        feed = imgs_pad[..., channel, i:, j:].contiguous()
 
-                hs, ws = feed.size()[-2:]
-                hs -= 2*receptiveFiled
-                ws -= 2*receptiveFiled
+                    hs, ws = feed.size()[-2:]
+                    hs -= 2*receptiveFiled
+                    ws -= 2*receptiveFiled
 
-                feed = padding(feed, patch_size+2*receptiveFiled, patch_size+2*receptiveFiled)
+                    feed = padding(feed, patch_size+2*receptiveFiled, patch_size+2*receptiveFiled)
 
-                _, pred = wkpn_model(feed.view(b, -1, patch_size+2*receptiveFiled, patch_size+2*receptiveFiled), feed[:, 0:8, ...])
-                res_wkpn[:, i:i+patch_size, j:j+patch_size] = pred[..., receptiveFiled:hs+receptiveFiled, receptiveFiled:ws+receptiveFiled].squeeze()
+                    # _, pred = wkpn_model(feed.view(b, -1, patch_size+2*receptiveFiled, patch_size+2*receptiveFiled), feed[:, 0:8, ...])
+                    # res_wkpn[channel, i:i+patch_size, j:j+patch_size] = pred[..., receptiveFiled:hs+receptiveFiled, receptiveFiled:ws+receptiveFiled].squeeze()
 
-                _, pred = gkpn_model(feed.view(b, -1, patch_size + 2 * receptiveFiled, patch_size + 2 * receptiveFiled),
-                                     feed[:, 0:8, ...])
-                res_gkpn[:, i:i + patch_size, j:j + patch_size] = pred[..., receptiveFiled:hs + receptiveFiled,
-                                                                  receptiveFiled:ws + receptiveFiled].squeeze()
+                    pred_i, pred, residuals = gkpn_model(feed.view(b, -1, patch_size + 2 * receptiveFiled, patch_size + 2 * receptiveFiled), feed[:, 0:8, ...])
+                    res_gkpn[channel, i:i + patch_size, j:j + patch_size] = pred[..., receptiveFiled:hs + receptiveFiled,
+                                                                      receptiveFiled:ws + receptiveFiled].squeeze()
+                    res_gkpn_pred_i[:, channel, i:i+patch_size, j:j+patch_size] = pred_i[..., receptiveFiled:hs + receptiveFiled,
+                                                                      receptiveFiled:ws + receptiveFiled].squeeze()
+                    res_gkpn_residual[:, channel, i:i + patch_size, j:j + patch_size] = residuals[...,
+                                                                                      receptiveFiled:hs + receptiveFiled,
+                                                                                      receptiveFiled:ws + receptiveFiled].squeeze()
 
-                _, pred = kpn_model(feed.view(b, -1, patch_size + 2 * receptiveFiled, patch_size + 2 * receptiveFiled),
-                                     feed[:, 0:8, ...])
-                res_kpn[:, i:i + patch_size, j:j + patch_size] = pred[..., receptiveFiled:hs + receptiveFiled,
-                                                                  receptiveFiled:ws + receptiveFiled].squeeze()
-                print('{}, {} OK!'.format(i, j))
+
+                    # _, pred = kpn_model(feed.view(b, -1, patch_size + 2 * receptiveFiled, patch_size + 2 * receptiveFiled),
+                    #                      feed[:, 0:8, ...])
+                    # res_kpn[channel, i:i + patch_size, j:j + patch_size] = pred[..., receptiveFiled:hs + receptiveFiled,
+                    #                                                   receptiveFiled:ws + receptiveFiled].squeeze()
+                    print('{}, {} OK!'.format(i, j))
 
         res_kpn = res_kpn.cpu().clamp(0.0, 1.0)
         res_wkpn = res_wkpn.cpu().clamp(0.0, 1.0)
         res_gkpn = res_gkpn.cpu().clamp(0.0, 1.0)
 
-        trans(res_kpn).save('./eval_images_real/{}_pred_kpn.png'.format(filename), quality=100)
-        trans(res_wkpn).save('./eval_images_real/{}_pred_wkpn.png'.format(filename), quality=100)
+        # trans(res_kpn).save('./eval_images_real/{}_pred_kpn.png'.format(filename), quality=100)
+        # trans(res_wkpn).save('./eval_images_real/{}_pred_wkpn.png'.format(filename), quality=100)
         trans(res_gkpn).save('./eval_images_real/{}_pred_gkpn.png'.format(filename), quality=100)
         trans(imgs[0, 0, ...].cpu()).save('./eval_images_real/{}_noisy.png'.format(filename), quality=100)
         print('OK!')

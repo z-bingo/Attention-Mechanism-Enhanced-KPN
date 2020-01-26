@@ -38,8 +38,8 @@ val_dict = {
         'kpn_5x5',
         # 'kpn_7x7',
         # 'spatial_att',
-        # 'weight_kpn',
-        # 'gkpn'
+        'weight_kpn',
+        'gkpn'
     }
 
 def prediction(model, gt, noisy, white_level):

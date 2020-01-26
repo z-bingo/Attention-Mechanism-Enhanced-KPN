@@ -23,14 +23,14 @@ class Network(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(32, 32, 3, 1, 1),
             nn.ReLU(inplace=True),
+            nn.Conv2d(32, 128, 3, 1, 1),
+            nn.ReLU(inplace=True),
+            nn.PixelShuffle(upscale_factor=2),
             nn.Conv2d(32, 32, 3, 1, 1),
             nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(32, 32, 3, 1, 1),
+            nn.Conv2d(32, 128, 3, 1, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 32, 3, 1, 1),
-            nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.PixelShuffle(upscale_factor=2),
             nn.Conv2d(32, channel, 3, 1, 1)
         )
 
@@ -60,7 +60,7 @@ class LossFn(nn.Module):
         return Lasymm + self.lambda_l*self.gradient(pred)
 
 def train():
-    log_writer = SummaryWriter('./logs')
+    log_writer = SummaryWriter('./logs_2')
     parser = argparse.ArgumentParser()
     parser.add_argument('--restart', '-r', action='store_true')
     args = parser.parse_args()
@@ -90,14 +90,14 @@ def train():
     optimizer = optim.Adam(model.parameters(), lr=5e-5)
 
     if not args.restart:
-        model.load_state_dict(load_checkpoint('./noise_models', best_or_latest='best'))
+        model.load_state_dict(load_checkpoint('./noise_models_2', best_or_latest='best'))
     global_iter = 0
     min_loss = np.inf
     loss_ave = MovingAverage(200)
 
     import os
-    if not os.path.exists('./noise_models'):
-        os.mkdir('./noise_models')
+    if not os.path.exists('./noise_models_2'):
+        os.mkdir('./noise_models_2')
 
     for epoch in range(100):
         for step, (data, A, B) in enumerate(data_loader):
@@ -124,14 +124,14 @@ def train():
                 save_checkpoint(
                     model.state_dict(),
                     is_best=is_best,
-                    checkpoint_dir='./noise_models',
+                    checkpoint_dir='./noise_models_2',
                     n_iter=global_iter
                 )
             print('{: 6d}, epoch {: 3d}, iter {: 4d}, loss {:.4f}'.format(global_iter, epoch, step, loss))
 
 def eval():
     model = Network(True).cuda()
-    model.load_state_dict(load_checkpoint('./noise_models', best_or_latest='best'))
+    model.load_state_dict(load_checkpoint('./noise_models_2', best_or_latest='best'))
     model.eval()
     from torchvision.transforms import transforms
     from PIL import Image

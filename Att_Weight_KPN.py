@@ -99,4 +99,4 @@ class Att_Weight_KPN(nn.Module):
         pred_i = weight*pred_i + (1-weight)*residual
 
         pred = torch.mean(pred_i, dim=1, keepdim=False)
-        return pred_i, pred
+        return pred_i, pred, residual
