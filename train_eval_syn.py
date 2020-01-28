@@ -7,7 +7,10 @@ from torch.utils.data import DataLoader
 import numpy as np
 import argparse
 
-import os, sys, time, shutil
+import os
+import sys
+import time
+import shutil
 
 from data_provider import OnTheFlyDataset, _configspec_path
 from kpn_data_provider import TrainDataSet, UndosRGBGamma, sRGBGamma
