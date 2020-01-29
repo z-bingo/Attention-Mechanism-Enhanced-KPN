@@ -1,21 +1,23 @@
-## Kernel Prediction  Networks and Multi-Kernel Prediction Networks
+## Attention Mechanism Enhanced Kernel Prediction Networks (AME-KPNs)
 
-The partial work is following [https://github.com/12dmodel/camera_sim](https://github.com/12dmodel/camera_sim).
+The official implementation of AME-KPNs in PyTorch, and our paper is accepted by ICASSP 2020 (oral), it is available at [TODO]().
 
-## News
-The current version supports training on color images.
+### News
+- Support KPN (Kernel Prediction Networks), MKPN (Multi-Kernel Prediction Networks) by modifing the config file.
+- The current version supports training on color images.
+- The noise can be generated in a simple way as the paper descirbed, and a complex way as [Jaroensri's work](https://github.com/12dmodel/camera_sim) but replacing the Halide with OpenCV and scikit-image.
 
-## TODO
+### TODO
 Write the documents.
 
-## Requirements
+### Requirements
 - Python3
 - PyTorch >= 1.0.0
 - Scikit-image
 - Numpy
 - TensorboardX (needed tensorflow support)
 
-## How to use it?
+### How to use it?
 This repo. supports training on multiple GPUs and the default setting is also multi-GPU.  
 
 If you want to restart the train process using KPN, the command you can type as
@@ -24,3 +26,5 @@ CUDA_VISIBLE_DEVICES=x,x train_eval_syn.py --cuda --mGPU -nw 4 --config_file ./k
 ```
 If no `--restart`, the train process would be resumed.
 
+### Citation
+TODO
