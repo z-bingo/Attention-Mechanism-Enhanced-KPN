@@ -27,11 +27,11 @@ CUDA_VISIBLE_DEVICES=x,x train_eval_syn.py --cuda --mGPU -nw 4 --config_file ./k
 If no `--restart`, the train process would be resumed.
 
 ### Citation
-'''
+```
 @article{zhang2019attention,
     title={Attention Mechanism Enhanced Kernel Prediction Networks for Denoising of Burst Images},
     author={Bin Zhang and Shenyao Jin and Yili Xia and Yongming Huang and Zixiang Xiong},
     year={2019},
     journal={arXiv preprint arXiv:1910.08313}
 }
-'''
+```
