@@ -1,6 +1,6 @@
 ## Attention Mechanism Enhanced Kernel Prediction Networks (AME-KPNs)
 
-The official implementation of AME-KPNs in PyTorch, and our paper is accepted by ICASSP 2020 (oral), it is available at [TODO]().
+The official implementation of AME-KPNs in PyTorch, and our paper is accepted by ICASSP 2020 (oral), it is available at [http://arxiv.org/abs/1910.08313](http://arxiv.org/abs/1910.08313).
 
 ### News
 - Support KPN (Kernel Prediction Networks), MKPN (Multi-Kernel Prediction Networks) by modifing the config file.
@@ -27,4 +27,11 @@ CUDA_VISIBLE_DEVICES=x,x train_eval_syn.py --cuda --mGPU -nw 4 --config_file ./k
 If no `--restart`, the train process would be resumed.
 
 ### Citation
-TODO
+'''
+@article{zhang2019attention,
+    title={Attention Mechanism Enhanced Kernel Prediction Networks for Denoising of Burst Images},
+    author={Bin Zhang and Shenyao Jin and Yili Xia and Yongming Huang and Zixiang Xiong},
+    year={2019},
+    journal={arXiv preprint arXiv:1910.08313}
+}
+'''
